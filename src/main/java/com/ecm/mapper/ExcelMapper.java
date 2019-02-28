@@ -150,7 +150,7 @@ public class ExcelMapper<T> {
             isNew = true;
         } else { //第一个sheet追加
             sheet = workbook.getSheetAt(0);
-            content = sheet.createRow(sheet.getLastRowNum());
+            content = sheet.createRow(sheet.getLastRowNum() + 1);
         }
         Class tClass = t.getClass();
         Field[] fields = tClass.getDeclaredFields();
@@ -185,7 +185,20 @@ public class ExcelMapper<T> {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return sheet.getLastRowNum();
+        return sheet.getLastRowNum() + 1;
+    }
+
+    /**
+     * 批量写入
+     *
+     * @param list 插入数量
+     * @return
+     */
+    public int insertList(List<T> list) {
+        for (T t : list) {
+            insert(t);
+        }
+        return list.size();
     }
 
     /**
@@ -201,10 +214,18 @@ public class ExcelMapper<T> {
         Workbook workbook = null;
         if (operaType.equals(WRITE)) {
             if (this.writeWorkbook == null) {
-                if (fileType.equals("xls")) {
-                    workbook = new HSSFWorkbook();
-                } else if (fileType.equals("xlsx")) {
-                    workbook = new XSSFWorkbook();
+                try {
+                    if (fileType.equals("xls")) {
+                        workbook = new HSSFWorkbook(new FileInputStream(filePath));
+                    } else if (fileType.equals("xlsx")) {
+                        workbook = new XSSFWorkbook(new FileInputStream(filePath));
+                    }
+                } catch (IOException e) {
+                    if (fileType.equals("xls")) {
+                        workbook = new HSSFWorkbook();
+                    } else if (fileType.equals("xlsx")) {
+                        workbook = new XSSFWorkbook();
+                    }
                 }
                 this.writeWorkbook = workbook;
             } else {

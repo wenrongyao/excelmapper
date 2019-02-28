@@ -25,7 +25,7 @@ public class ExcelMapperTest {
     public void insert() throws Exception {
         ExcelMapper<User> userExcelMapper2 = new ExcelMapper<>("F:/Test.xlsx");
         User user = new User();
-        user.setName("张三");
+        user.setName("李四");
         user.setAge(25);
         user.setAddress("广东省广州市");
         user.setBirthDate(new Date());
