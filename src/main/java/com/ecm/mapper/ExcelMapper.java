@@ -32,6 +32,9 @@ public class ExcelMapper<T> {
     private final static String READ = "read";
 
     private String filePath;
+    private Workbook writeWorkbook;
+    private Workbook readWorkbook;
+
 
     public ExcelMapper(String filePath) {
         this.filePath = filePath;
@@ -192,25 +195,35 @@ public class ExcelMapper<T> {
      * @param operaType 读或写
      * @return
      */
-    private Workbook getWorkbook(String filePath, String operaType) {
+    private synchronized Workbook getWorkbook(String filePath, String operaType) {
         String fileType = filePath.substring((filePath.indexOf(".") + 1));
         //根据excel文件类型创建Workbook对象
         Workbook workbook = null;
         if (operaType.equals(WRITE)) {
-            if (fileType.equals("xls")) {
-                workbook = new HSSFWorkbook();
-            } else if (fileType.equals("xlsx")) {
-                workbook = new XSSFWorkbook();
+            if (this.writeWorkbook == null) {
+                if (fileType.equals("xls")) {
+                    workbook = new HSSFWorkbook();
+                } else if (fileType.equals("xlsx")) {
+                    workbook = new XSSFWorkbook();
+                }
+                this.writeWorkbook = workbook;
+            } else {
+                workbook = this.writeWorkbook;
             }
         } else if (operaType.equals(READ)) {
-            try {
-                if (fileType.equals("xls")) {
-                    workbook = new HSSFWorkbook(new FileInputStream(filePath));
-                } else if (fileType.equals("xlsx")) {
-                    workbook = new XSSFWorkbook(new FileInputStream(filePath));
+            if (this.readWorkbook == null) {
+                try {
+                    if (fileType.equals("xls")) {
+                        workbook = new HSSFWorkbook(new FileInputStream(filePath));
+                    } else if (fileType.equals("xlsx")) {
+                        workbook = new XSSFWorkbook(new FileInputStream(filePath));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+                this.readWorkbook = workbook;
+            } else {
+                workbook = this.readWorkbook;
             }
         }
         return workbook;
