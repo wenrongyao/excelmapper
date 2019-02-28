@@ -171,7 +171,8 @@ public class ExcelMapper<T> {
                 }
                 try {
                     Object value = method.invoke(t);
-                    content.createCell(head.orderBy()).setCellValue(value.toString());
+                    if (null != value)
+                        content.createCell(head.orderBy()).setCellValue(value.toString());
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 } catch (InvocationTargetException e) {
