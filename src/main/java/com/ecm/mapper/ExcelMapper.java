@@ -28,17 +28,13 @@ import java.util.List;
  * 通用excelMapper
  **/
 public class ExcelMapper<T> {
-    private Workbook workbook;
-    private String filePath;
+    private final static String WRITE = "write";
+    private final static String READ = "read";
 
-    public ExcelMapper(Workbook workbook, String filePath) {
-        this.workbook = workbook;
-        this.filePath = filePath;
-    }
+    private String filePath;
 
     public ExcelMapper(String filePath) {
         this.filePath = filePath;
-        this.workbook = getWorkbook(filePath);
     }
 
     /**
@@ -48,6 +44,7 @@ public class ExcelMapper<T> {
      * @return
      */
     public List<T> readAll(Class<T> tClass) {
+        Workbook workbook = getWorkbook(filePath, READ);
         List<T> list = new ArrayList<>();
         for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
             Sheet sheet = workbook.getSheetAt(i);
@@ -79,7 +76,8 @@ public class ExcelMapper<T> {
         for (Field field : fields) {
             String fieldName = field.getName();
             String methodName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-            Method method = tClass.getMethod(methodName, field.getType());
+            Class typeClass = field.getType();
+            Method method = tClass.getMethod(methodName, typeClass);
             Head head = field.getAnnotation(Head.class);
             Transparent transparent = field.getAnnotation(Transparent.class);
             if (transparent == null) {
@@ -88,7 +86,7 @@ public class ExcelMapper<T> {
                     String excelHeadName = header.getCell(i).getStringCellValue();
                     if (value.trim().equals(excelHeadName.trim())) {
                         Object excelValue = getValue(content.getCell(i));
-                        method.invoke(t, excelValue);
+                        method.invoke(t, typeClass.getConstructor(String.class).newInstance(excelValue));
                     }
                 }
             }
@@ -136,6 +134,7 @@ public class ExcelMapper<T> {
      * @return
      */
     public int insert(T t) {
+        Workbook workbook = getWorkbook(filePath, WRITE);
         boolean isNew = false;
         int sheetNum = workbook.getNumberOfSheets();
         Sheet sheet;
@@ -187,23 +186,32 @@ public class ExcelMapper<T> {
     }
 
     /**
-     * 小文件导入时，根据filepath
+     * 根据后缀类型建立workbook对象
      *
-     * @param filePath
+     * @param filePath  文件路径
+     * @param operaType 读或写
      * @return
      */
-    private Workbook getWorkbook(String filePath) {
+    private Workbook getWorkbook(String filePath, String operaType) {
         String fileType = filePath.substring((filePath.indexOf(".") + 1));
         //根据excel文件类型创建Workbook对象
         Workbook workbook = null;
-        try {
+        if (operaType.equals(WRITE)) {
             if (fileType.equals("xls")) {
-                workbook = new HSSFWorkbook(new FileInputStream(filePath));
+                workbook = new HSSFWorkbook();
             } else if (fileType.equals("xlsx")) {
-                workbook = new XSSFWorkbook(filePath);
+                workbook = new XSSFWorkbook();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } else if (operaType.equals(READ)) {
+            try {
+                if (fileType.equals("xls")) {
+                    workbook = new HSSFWorkbook(new FileInputStream(filePath));
+                } else if (fileType.equals("xlsx")) {
+                    workbook = new XSSFWorkbook(new FileInputStream(filePath));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return workbook;
     }
